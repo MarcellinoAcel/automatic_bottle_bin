@@ -4,39 +4,22 @@ import time
 class Uart:
     def __init__(self, port, baudrate, timeout):
         self.firm = serial.Serial(port=port, baudrate=baudrate, timeout=timeout)
-        # self.port = port
-        # self.baudrate = baudrate
-        # self.timeout = timeout
-        print(f"[INFO] Connected to {port} at {baudrate} baud.")
 
     def send(self, msg):
-        """
-        Send message to firmware.
-        """
         self.firm.write(bytes(msg, 'utf-8'))
-        print(f"[SEND] {msg}")
 
     def read(self):
-        """
-        Read message from firmware.
-        """
         data = self.firm.readline().decode('utf-8').strip()
         if data:
             print(f"[RECV] {data}")
         return data
 
     def write_and_read(self, msg):
-        """
-        Send message and read response.
-        """
         self.send(msg)
         time.sleep(0.05)
         return self.read()
 
     def close(self):
-        """
-        Close serial connection.
-        """
         if self.firm:
             self.firm.close()
             print("[INFO] Disconnected from microcontroller.")

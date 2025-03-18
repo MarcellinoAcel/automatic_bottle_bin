@@ -6,6 +6,8 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.image import Image
 
+from kivy.lang import Builder
+
 from kivy.clock import Clock
 
 from kivy.core.window import Window
@@ -15,13 +17,10 @@ from kivy.graphics.texture import Texture
 from ultralytics import YOLO
 import cv2
 
-import uart_com 
 
 import time
 
-import threading
-
-# firm = uart_com.Uart(port="/dev/serial/by-id/usb-1a86_USB_Serial-if00-port0", baudrate=115200, timeout=10)
+import uart_com 
 
 class MainScreen(Screen):
     def __init__(self, **kwargs):
@@ -34,7 +33,7 @@ class MainScreen(Screen):
         self.video.pos_hint = {'center_x': 0.5, 'center_y': 0.5}
         self.layout.add_widget(self.video)
         
-        masukkan_button = Button(text='Masukkan Botol', font_size=18, size_hint=(None, None), size=(150, 50), pos_hint={'center_x': 0.9, 'center_y': 0.9})
+        masukkan_button = Button(text='Masukkan Botol', font_size=18, size_hint=(None, None), size=(250, 150), pos_hint={'center_x': 0.75, 'center_y': 0.5})
         masukkan_button.bind(on_press=self.open_second_Window)
         self.layout.add_widget(masukkan_button)
         
@@ -44,12 +43,13 @@ class MainScreen(Screen):
         self.manager.current = 'second_Window'
 
 class SecondWindow(Screen):
-    def __init__(self, **kwargs):
+    def __init__(self, uart_instance,**kwargs):
         super().__init__(**kwargs)
         self.clock_event = None 
         self.capture = None
         self.model = None
         self.start_time = None
+        self.uart = uart_instance
 
         layout = FloatLayout()
         self.image = Image(size_hint=(1,1), pos_hint ={'center_x':0.5, 'center_y':0.5})
@@ -58,7 +58,7 @@ class SecondWindow(Screen):
         self.result_label = Button(text="Detecting...", font_size=18, size_hint=(None, None), size=(250, 50), pos_hint={'center_x': 0.5, 'center_y': 0.1})
         layout.add_widget(self.result_label)
 
-        back_button = Button(text='Kembali', font_size=18, size_hint=(None, None), size=(150, 50), pos_hint={'center_x': 0.9, 'center_y': 0.9})
+        back_button = Button(text='Kembali', font_size=18, size_hint=(None, None), size=(250, 150), pos_hint={'center_x': 0.75, 'center_y': 0.5})
         back_button.bind(on_press=self.go_back)
         layout.add_widget(back_button)
 
@@ -91,12 +91,12 @@ class SecondWindow(Screen):
 
         unique_detections = list(set(self.all_detections))
         detected_objects = ", ".join(set(unique_detections)) if unique_detections else "No objects detected"
-        # if "bottle" in unique_detections:
-        #     firm.send(1)
-        # elif "can" in unique_detections:
-        #     firm.send(2)
-        # else:
-        #     firm.send(0)
+        if "bottle" in unique_detections:
+            self.uart.send("1")
+        elif "can" in unique_detections:
+            self.uart.send("2")
+        else:
+            self.uart.send("0")
         # annotated_frame = cv2.flip(annotated_frame, 0)
         # buf = annotated_frame.tobytes()
         # texture = Texture.create(size=(annotated_frame.shape[1], annotated_frame.shape[0]), colorfmt='bgr')
@@ -124,14 +124,19 @@ class FullscreenApp(App):
         Window.fullscreen = 'auto'  # Make the window fullscreen
         Window.bind(on_key_down=self.on_key_down)
         
+        self.uart = uart_com.Uart(port="/dev/serial/by-id/usb-1a86_USB_Serial-if00-port0",
+                                  baudrate=115200,
+                                  timeout=1)
+
         sm = ScreenManager()
         sm.add_widget(MainScreen(name='main'))
-        sm.add_widget(SecondWindow(name='second_Window'))
+        sm.add_widget(SecondWindow(uart_instance=self.uart,name='second_Window'))
         
         return sm
     
     def on_key_down(self, instance, key, *args):
         if key == 27:  # 27 is the keycode for Esc
+            self.uart.close()
             App.get_running_app().stop()
 
 if __name__ == "__main__":
