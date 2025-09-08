@@ -1,11 +1,11 @@
 import uart_com
 
-firm = uart_com.Uart("/dev/serial/by-id/usb-1a86_USB_Serial-if00-port0",115200,10)
+firm = uart_com.Uart("/dev/serial/by-id/usb-STMicroelectronics_STM32_Virtual_ComPort_325730633331-if00",115200,10)
 
 if __name__ == "__main__":
     try:
         while True:
-            msg = input("Enter a command: ")
+            msg = input("1")
             if msg.lower() == "exit":
                 break
             response = firm.send(msg)
